@@ -1,0 +1,53 @@
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(5, 6); // RX, TX
+
+//Y-axis value connection
+const int ypin = A2; 
+
+// for low-pass filter - init to zero
+double dataY[3] = {0, 0, 0};
+
+void setup() {
+  // initialize the serial communications:
+  Serial.begin(9600);
+  mySerial.begin(9600);
+
+}
+
+//calculate the average of 3 values
+inline double movingAverage(double x, double y, double z) {
+  return (x + y + z) / 3.0;
+}
+
+//convert value to G
+inline double convertToG(int value) {
+  return (0.01 * value) - 5.0;
+}
+
+
+//keep running forever
+void loop() {
+  //read current value and convert to G
+  dataY[2] = convertToG(analogRead(ypin));
+  // calculate moving average (low-pass filter) for smoothening data
+  double avg = movingAverage(dataY[0], dataY[1], dataY[2]);
+  //swap for next iteration
+  dataY[0] = dataY[1];
+  dataY[1] = dataY[2];
+  //send data to Java 
+  mySerial.println(avg);
+  Serial.println(avg);
+  if (avg > 900) {
+
+    mySerial.write("JUMPING");
+  }
+  else
+  {
+    mySerial.write("RESTING");
+  }
+  mySerial.write("\n");
+
+  //delay between the readings
+  delay(100);
+
+}
